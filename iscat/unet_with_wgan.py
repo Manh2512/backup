@@ -5,7 +5,7 @@ Adversarial Loss + MSE Loss + BCE Loss.
 import os
 import glob
 
-import numpy as np
+import numpy
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -23,7 +23,7 @@ import skimage
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 torch.manual_seed(0)
-np.random.seed(0)
+numpy.random.seed(0)
 
 latent_dim = 512
 batch_size = 4
