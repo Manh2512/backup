@@ -32,7 +32,7 @@ lr = 1e-5
 beta1 = 0.6
 beta2 = 0.9
 clip_value = 0.01
-num_epochs = 18
+num_epochs = 1
 
 train_loss_hist = []
 val_loss_hist = []
@@ -136,6 +136,7 @@ class ImageDataset(torch.utils.data.Dataset):
         
         input_image = Image.open(input_image_path)
         target_image = Image.open(target_image_path)
+        print(type(input_images))
         
         # Apply transformations
         if self.transform:
