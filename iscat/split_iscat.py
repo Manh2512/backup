@@ -29,7 +29,9 @@ def split_and_resize(input_dir, target_dir, output_dir, train_ratio=0.75):
 
     # List of input and target files
     input_images = sorted(os.listdir(input_dir))
+	input_images = [f for f in input_images if f.endswith('png')]
     target_images = sorted(os.listdir(target_dir))
+	target_images = [f for f in target_images if f.endswith('png')]
 
     # Ensure input and target have the same number of files
     assert len(input_images) == len(target_images), "Input and target folders must have the same number of images."
