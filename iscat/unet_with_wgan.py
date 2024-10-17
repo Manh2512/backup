@@ -136,7 +136,7 @@ class ImageDataset(torch.utils.data.Dataset):
         
         input_image = Image.open(input_image_path)
         target_image = Image.open(target_image_path)
-        print(type(input_images))
+        print(type(input_image))
         
         # Apply transformations
         if self.transform:
