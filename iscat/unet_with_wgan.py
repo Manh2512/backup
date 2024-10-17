@@ -32,7 +32,7 @@ lr = 1e-5
 beta1 = 0.6
 beta2 = 0.9
 clip_value = 0.01
-num_epochs = 1
+num_epochs = 15
 
 train_loss_hist = []
 val_loss_hist = []
