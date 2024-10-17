@@ -26,13 +26,13 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 latent_dim = 512
-batch_size = 2
+batch_size = 4
 
 lr = 1e-5
 beta1 = 0.6
 beta2 = 0.9
 clip_value = 0.01
-num_epochs = 15
+num_epochs = 18
 
 train_loss_hist = []
 val_loss_hist = []
