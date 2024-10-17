@@ -45,20 +45,21 @@ def split_and_resize(input_dir, target_dir, output_dir, train_ratio=0.75):
     val_set = combined[split_train_idx:]
     resize_transform = transforms.Resize((512,512))
 
-    def copy(image_path, output_path):
+    def copy(image_path, output_path, noise=False):
         img = Image.open(image_path)
-        img = add_gaussian_noise(img, 0, 10)
+        if noise:
+            img = add_gaussian_noise(img, 0, 10)
         img = resize_transform(img)
         img.save(output_path)
 
     # Copy and resize images for the training set
     for input_img, target_img in train_set:
-        copy(os.path.join(input_dir, input_img), os.path.join(train_input_dir, input_img))
+        copy(os.path.join(input_dir, input_img), os.path.join(train_input_dir, input_img), noise=True)
         copy(os.path.join(target_dir, target_img), os.path.join(train_target_dir, target_img))
 	
     # Copy and resize images for the val set
     for input_img, target_img in val_set:
-        copy(os.path.join(input_dir, input_img), os.path.join(val_input_dir, input_img))
+        copy(os.path.join(input_dir, input_img), os.path.join(val_input_dir, input_img), noise=True)
         copy(os.path.join(target_dir, target_img), os.path.join(val_target_dir, target_img))
 
     print(f"Split completed: {len(train_set)} train and {len(val_set)} validating images.")
