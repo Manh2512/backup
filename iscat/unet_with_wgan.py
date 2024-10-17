@@ -5,7 +5,6 @@ Adversarial Loss + MSE Loss + BCE Loss.
 import os
 import glob
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
