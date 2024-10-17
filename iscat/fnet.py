@@ -29,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 latent_dim = 512
-batch_size = 1
+batch_size = 4
 
 lr = 1e-5
 beta1 = 0.6
