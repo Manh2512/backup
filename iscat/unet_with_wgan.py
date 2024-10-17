@@ -27,7 +27,7 @@ torch.manual_seed(0)
 numpy.random.seed(0)
 
 latent_dim = 512
-batch_size = 4
+batch_size = 2
 
 lr = 1e-5
 beta1 = 0.6
@@ -137,7 +137,6 @@ class ImageDataset(torch.utils.data.Dataset):
         
         input_image = Image.open(input_image_path)
         target_image = Image.open(target_image_path)
-        print(type(input_image))
         
         # Apply transformations
         if self.transform:
