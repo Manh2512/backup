@@ -62,6 +62,15 @@ class ConvLayer(nn.Module):
     def forward(self, x):
         return self.layer(x)
 
+class DoubleConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
+        super(DoubleConv, self).__init__()
+        self.layer = nn.Sequential(
+            ConvLayer(in_channels, out_channels, kernel_size, stride, padding),
+            ConvLayer(out_channels,  out_channels, kernel_size, stride, padding)
+        )
+    def forward(self, x):
+        return self.layer(x)
 
 class Down(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
@@ -155,8 +164,9 @@ class Generator(nn.Module):
         self.down2 = Down(64, 128)
         self.down3 = Down(128, 256)
 
-        self.conv1 = ConvLayer(64, 64)
-        self.conv2 = ConvLayer(128, 128)
+        self.conv0 = DoubleConv(32, 32)
+        self.conv1 = DoubleConv(64, 64)
+        self.conv2 = DoubleConv(128, 128)
 
         self.up1 = Up(256, 128)
         self.up2 = Up(128, 64)
@@ -176,7 +186,7 @@ class Generator(nn.Module):
 
         x = self.up1(x4, self.conv2(x3))
         x = self.up2(x, self.conv1(x2))
-        x = self.up3(x, x1)
+        x = self.up3(x, self.conv0(x1))
 
         x_end1 = self.conv_end1(x)
         x_end2 = self.conv_end2(x_end1)
