@@ -21,6 +21,7 @@ from PIL import Image
 import skimage
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+torch.cuda.empty_cache()
 
 torch.manual_seed(0)
 numpy.random.seed(0)
