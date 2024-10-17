@@ -1,5 +1,6 @@
 """
 Split iSCAT_data to train and validation and add Gaussian noise to images.
+--NO noise to GT.
 """
 import os
 import numpy as np
