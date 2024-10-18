@@ -379,7 +379,7 @@ def main():
 
     
     #visualize losses
-    fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 12))
 
     # Plot Discrimination Loss
     axs[0].plot(range(1, num_epochs + 1), d_loss_hist, marker='o', linestyle='-', color='yellow')
@@ -396,11 +396,11 @@ def main():
     axs[1].grid(True)
 
     # Plot Validation Loss
-    axs[1].plot(range(1, num_epochs + 1), val_loss_hist, marker='o', linestyle='-', color='g')
-    axs[1].set_title('Validation Loss vs. Epochs')
-    axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('Loss')
-    axs[1].grid(True)
+    axs[2].plot(range(1, num_epochs + 1), val_loss_hist, marker='o', linestyle='-', color='g')
+    axs[2].set_title('Validation Loss vs. Epochs')
+    axs[2].set_xlabel('Epochs')
+    axs[2].set_ylabel('Loss')
+    axs[2].grid(True)
 
     plt.tight_layout()
     plt.savefig(plot_output+f'/UWGAN_ep={num_epochs}.png')
