@@ -5,7 +5,7 @@ Adversarial Loss + MSE Loss + BCE Loss.
 import os
 import glob
 
-import numpy
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -20,20 +20,21 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import skimage
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.cuda.empty_cache()
 
 torch.manual_seed(0)
-numpy.random.seed(0)
+np.random.seed(0)
 
 latent_dim = 512
-batch_size = 2
+batch_size = 7
 
 lr = 1e-5
 beta1 = 0.6
 beta2 = 0.9
 clip_value = 0.01
-num_epochs = 1
+num_epochs = 50
 
 train_loss_hist = []
 val_loss_hist = []
@@ -209,10 +210,11 @@ class Discriminator(nn.Module):
             nn.ZeroPad2d((0, 1, 0, 1)),
             nn.BatchNorm2d(64, momentum=0.82),
             nn.LeakyReLU(0.25),
+            nn.Dropout(0.25),
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128, momentum=0.82),
             nn.LeakyReLU(0.2),
-            nn.Dropout(0.2),
+            nn.Dropout(0.25),
             nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=1),
             nn.BatchNorm2d(256, momentum=0.8),
             nn.LeakyReLU(0.25),
@@ -229,8 +231,11 @@ def main():
     #===================== LOADING DATA ===========================
     path_model = 'models/iscat/UWGAN'
     plot_output = 'outputs/plots'
+    if not os.path.exists(path_model):
+        os.makedirs(path_model)
+    if not os.path.exists(plot_output):
+        os.makedirs(plot_output)
     
-    # Create dataset
     # Create dataset
     train_input_dir = 'iSCAT_processed/train/Input'
     train_target_dir = 'iSCAT_processed/train/GT'
@@ -256,13 +261,14 @@ def main():
     optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=1e-5) #regularization
     optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=1e-5)
 
-    start_ep = 0
+    start_ep = 1
     min_val_loss = 1e10
+    patience_counter = 0
+    ran_epochs = 0
     """
     #loading Generator
-    if os.path.isfile(os.path.join(path_model,"checkpoint_G.pth")):
-        #checkpoint = torch.load(os.path.join(path_model,"checkpoint.pth"), map_location='cpu')
-        checkpoint = torch.load(os.path.join(path_model,"checkpoint_G.pth"),map_location=torch.device('cpu'))
+    if os.path.isfile(os.path.join(path_model,"checkpoint_UWG_final.pth")):
+        checkpoint = torch.load(os.path.join(path_model,"checkpoint_UWG_final.pth"),map_location=torch.device('cpu'))
         start_ep = checkpoint['epoch']
         print("Resuming from the checkpoint: ep", start_ep+1)
         np.random.set_state(checkpoint['np_rand_state'])
@@ -271,9 +277,8 @@ def main():
         generator.load_state_dict(checkpoint['model'])
 
     #loading Discriminator
-    if os.path.isfile(os.path.join(path_model,"checkpoint_D.pth")):
-        #checkpoint = torch.load(os.path.join(path_model,"checkpoint.pth"), map_location='cpu')
-        checkpoint = torch.load(os.path.join(path_model,"checkpoint_D.pth"),map_location=torch.device('cpu'))
+    if os.path.isfile(os.path.join(path_model,"checkpoint_D_final.pth")):
+        checkpoint = torch.load(os.path.join(path_model,"checkpoint_D_final.pth"),map_location=torch.device('cpu'))
         start_ep = checkpoint['epoch']
         print("Resuming from the checkpoint: ep", start_ep+1)
         np.random.set_state(checkpoint['np_rand_state'])
@@ -283,6 +288,7 @@ def main():
     """
     # Training loop
     for epoch in range(num_epochs):
+        ran_epochs += 1
         for i, (xx,yy) in enumerate(train_loader):
             #data and its label
             xx = xx.to(device)
@@ -296,7 +302,7 @@ def main():
             fake_images = generator(xx)
     
             # Measure discriminator's ability to classify real and fake images
-            d_loss = adversarial_loss(discriminator(fake_images.detach()), discriminator(yy))
+            d_loss = 1.0 - adversarial_loss(discriminator(fake_images.detach()), discriminator(yy))
             # Backward pass and optimize
             d_loss.backward()
             optimizer_D.step()
@@ -312,7 +318,7 @@ def main():
             # Generate a batch of images
             gen_images = generator(xx)
             # Total loss
-            g_loss = -0.5*adversarial_loss(discriminator(gen_images), discriminator(yy)) + bce_loss(gen_images, yy)
+            g_loss = 0.5*adversarial_loss(discriminator(gen_images), discriminator(yy)) + bce_loss(gen_images, yy)
             
             # Backward pass and optimize
             g_loss.backward()
@@ -320,7 +326,7 @@ def main():
             # ---------------------
             #  Progress Monitoring
             # ---------------------
-            if (i + 1) % 500 == 0:
+            if (i + 1) % 125 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}]\
                             Batch {i+1}/{len(train_loader)} "
@@ -342,6 +348,25 @@ def main():
                     Valid MSE Loss: {valid_mse:.4f} "
         )
         
+        #save losses
+        d_loss_hist.append(d_loss.item())
+        train_loss_hist.append(g_loss.item())
+        val_loss_hist.append(valid_mse)
+        #save generator
+        torch.save({'epoch': epoch+start_ep,
+                    'model': generator.state_dict(),
+                    'optimizer': optimizer_G.state_dict(),
+                    'np_rand_state': np.random.get_state(),
+                    'torch_rand_state': torch.get_rng_state(),
+                    }, os.path.join(path_model,f"checkpoint_YG_ep={epoch+start_ep}.pth"))
+        #save discriminator
+        torch.save({'epoch': epoch+start_ep,
+                    'model': discriminator.state_dict(),
+                    'optimizer': optimizer_D.state_dict(),
+                    'np_rand_state': np.random.get_state(),
+                    'torch_rand_state': torch.get_rng_state(),
+                    }, os.path.join(path_model,f"checkpoint_YD_ep={epoch+start_ep}.pth"))
+        
         if valid_mse < min_val_loss:
             min_val_loss = valid_mse
             #save generator
@@ -358,45 +383,31 @@ def main():
                         'np_rand_state': np.random.get_state(),
                         'torch_rand_state': torch.get_rng_state(),
                         }, os.path.join(path_model,"checkpoint_D_final.pth"))
-        #save losses
-        d_loss_hist.append(d_loss.item())
-        train_loss_hist.append(g_loss.item())
-        val_loss_hist.append(valid_mse)
-        #save generator
-        torch.save({'epoch': epoch+start_ep,
-                    'model': generator.state_dict(),
-                    'optimizer': optimizer_G.state_dict(),
-                    'np_rand_state': np.random.get_state(),
-                    'torch_rand_state': torch.get_rng_state(),
-                    }, os.path.join(path_model,f"checkpoint_YG_ep={epoch}.pth"))
-        #save discriminator
-        torch.save({'epoch': epoch+start_ep,
-                    'model': discriminator.state_dict(),
-                    'optimizer': optimizer_D.state_dict(),
-                    'np_rand_state': np.random.get_state(),
-                    'torch_rand_state': torch.get_rng_state(),
-                    }, os.path.join(path_model,f"checkpoint_YD_ep={epoch}.pth"))
-
+        else:
+            patience_counter += 1
+        if patience_counter > 3:
+            break
     
+    #=======================end of training loop================================
     #visualize losses
     fig, axs = plt.subplots(3, 1, figsize=(10, 12))
 
     # Plot Discrimination Loss
-    axs[0].plot(range(1, num_epochs + 1), d_loss_hist, marker='o', linestyle='-', color='yellow')
+    axs[0].plot(range(1, ran_epochs + 1), d_loss_hist, marker='o', linestyle='-', color='yellow')
     axs[0].set_title('Discrimination Loss vs. Epochs')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('Discrimination Loss')
     axs[0].grid(True)
 
     # Plot Generation Loss
-    axs[1].plot(range(1, num_epochs + 1), train_loss_hist, marker='o', linestyle='-', color='b')
+    axs[1].plot(range(1, ran_epochs + 1), train_loss_hist, marker='o', linestyle='-', color='b')
     axs[1].set_title('Generation Loss vs. Epochs')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('Generation Loss')
     axs[1].grid(True)
 
     # Plot Validation Loss
-    axs[2].plot(range(1, num_epochs + 1), val_loss_hist, marker='o', linestyle='-', color='g')
+    axs[2].plot(range(1, ran_epochs + 1), val_loss_hist, marker='o', linestyle='-', color='g')
     axs[2].set_title('Validation Loss vs. Epochs')
     axs[2].set_xlabel('Epochs')
     axs[2].set_ylabel('Loss')
