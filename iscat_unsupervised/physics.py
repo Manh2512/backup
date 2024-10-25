@@ -9,7 +9,7 @@ latent_dim = 512
 pixel_size = 2*10.2e-6
 objective_mag = 60
 z = 1e-3
-wavelengths = torch.tensor(np.loadtxt('URECA/iSCAT_data/iscat_wavelengths.csv', delimiter=','), dtype=torch.float32)
+wavelengths = torch.tensor(np.loadtxt('iSCAT_data/iscat_wavelengths.csv', delimiter=','), dtype=torch.float32)
 
 def physics_module(reconstructed_image, pixel_size, wavelength, objective_mag, z):
     """
