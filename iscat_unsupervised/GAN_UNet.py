@@ -4,6 +4,7 @@ Adversarial Loss + MSE Loss + BCE Loss.
 """
 import os
 import glob
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 import numpy as np
 import torch
@@ -20,7 +21,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import skimage
 from skimage.metrics import structural_similarity as ssim
-import torch.fft as fft
+from physics import pixel_size, objective_mag, z, wavelengths, physics_module
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.cuda.empty_cache()
@@ -29,10 +30,7 @@ torch.autograd.set_detect_anomaly(True)
 torch.manual_seed(0)
 np.random.seed(0)
 
-latent_dim = 512
-pixel_size = 2*10.2e-6
-objective_mag = 60
-z = 1e-3
+latent_dim = 512 #dimension of image
 batch_size = 5
 
 lr = 1e-5
@@ -47,58 +45,8 @@ def normalize(x):
     min_value = x.min()
     return (x - min_value) / (max_value - min_value)
 
-def physics_module(reconstructed_image, pixel_size, wavelength, objective_mag, z):
-    """
-    Simulates the iSCAT forward propagation given an initial reconstructed image.
 
-    Parameters:
-    - reconstructed_image: torch tensor, the initial reconstructed image, of shape [batch, 1, 512, 512]
-    - pixel_size: float, physical pixel size of the image (in meters)
-    - wavelength: float, wavelength of the light used (in meters)
-    - objective_mag: float, magnification of the objective lens
-    - z: float, propagation distance (in meters)
-
-    Returns:
-    - iscat_image: torch tensor, the simulated iSCAT microscope image
-    """
-    
-    # Constants
-    k = (2 * 3.14159265 / (wavelength*1e-9))  # Wavenumber
-    
-    # Image size and pixel size adjustment for magnification
-    image_size = reconstructed_image.shape
-    dx = pixel_size / objective_mag  # Effective pixel size after magnification
-
-    # Create the spatial coordinates (physical space)
-    x = torch.linspace(-image_size[-1] // 2, image_size[-1] // 2 - 1, image_size[-1], dtype=torch.float32) * dx
-    y = torch.linspace(-image_size[-2] // 2, image_size[-2] // 2 - 1, image_size[-2], dtype=torch.float32) * dx
-    X, Y = torch.meshgrid(x, y, indexing='ij')  # Use 'ij' indexing to match NumPy behavior
-
-    # Fresnel propagation kernel
-    H = torch.exp(1j * k * z) * torch.exp(-1j * k / (2 * z) * (X**2 + Y**2))
-
-    # Simulate the scattered field
-    scattered_field = reconstructed_image * torch.exp(1j * k * z).to(device)
-
-    # Apply Fourier transforms for propagation
-    scattered_field_ft = fft.fftshift(fft.fft2(scattered_field))  # Forward FFT
-    scattered_field_propagated = fft.ifft2(fft.ifftshift(scattered_field_ft * H))  # Apply kernel and inverse FFT
-
-    # Reference beam (plane wave)
-    reference_amplitude = 1.0
-    reference_phase = torch.tensor(0.0)
-    reference_field = reference_amplitude * torch.exp(1j * reference_phase) * torch.ones_like(scattered_field_propagated)
-
-    # Compute iSCAT interference pattern
-    iscat_image = torch.abs(scattered_field_propagated + reference_field)**2
-
-    # Normalize the output
-    iscat_image /= torch.max(iscat_image.detach())
-
-    return iscat_image
-
-
-#_________________________________________Generator and Loss built from here_________________________________________
+#_________________________________________Generator built from here_________________________________________
 class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super(ConvLayer, self).__init__()
@@ -309,13 +257,12 @@ class SSIM(torch.nn.Module):
 
 def main():
     #===================== LOADING DATA ===========================
-    path_model = 'Desktop/URECA/GAN-main/unsupervised/validating'
-    plot_output = 'Desktop/URECA/GAN-main/unsupervised/validating'
+    path_model = 'unsupervised/UNet'
+    plot_output = 'outputs/plots'
 
     # Create dataset
-    train_input_dir = 'Desktop/URECA/iSCAT_processed/train/Input'
-    val_input_dir = 'Desktop/URECA/iSCAT_processed/val/Input'
-    wavelengths = torch.tensor(np.loadtxt('Desktop/URECA/iSCAT_data/iscat_wavelengths.csv', delimiter=','), dtype=torch.float32)
+    train_input_dir = 'iSCAT_processed/train/Input'
+    val_input_dir = 'iSCAT_processed/val/Input'
     
     train_dataset = ImageDataset(input_dir=train_input_dir, wavelengths=wavelengths, transform=transform)
     val_dataset = ImageDataset(input_dir=val_input_dir, wavelengths=wavelengths, transform=transform)
@@ -328,13 +275,12 @@ def main():
     discriminator = Discriminator(latent_dim).to(device)
     # Loss functions
     ssim_loss = SSIM().to(device)
-    mse_loss = nn.MSELoss()
     adversarial_loss = nn.BCEWithLogitsLoss()
     # Optimizers
     optimizer_G = optim.SGD(generator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
     optimizer_D = optim.SGD(discriminator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
-    scheduler_G = optim.lr_scheduler.StepLR(optimizer_G, step_size=5, gamma=0.1)
-    scheduler_D = optim.lr_scheduler.StepLR(optimizer_D, step_size=5, gamma=0.1)
+    scheduler_G = optim.lr_scheduler.StepLR(optimizer_G, step_size=10, gamma=0.1)
+    scheduler_D = optim.lr_scheduler.StepLR(optimizer_D, step_size=10, gamma=0.1)
 
     start_ep = 0
     min_val_loss = 1e10
@@ -396,7 +342,7 @@ def main():
                 xx = xx.to(device)
                 im = generator(xx)
                 reconstructed = physics_module(im, pixel_size, w, objective_mag, z)
-                valid_loss = mse_loss(reconstructed, xx).item()
+                valid_loss += 1 - ssim_loss(reconstructed, xx).item()
         valid_loss /= len(val_loader)
                 
         print(
