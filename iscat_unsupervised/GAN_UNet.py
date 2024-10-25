@@ -40,12 +40,6 @@ d_loss_hist = []
 train_loss_hist = []
 val_loss_hist = []
 
-def normalize(x):
-    max_value = x.max()
-    min_value = x.min()
-    return (x - min_value) / (max_value - min_value)
-
-
 #_________________________________________Generator built from here_________________________________________
 class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
@@ -199,13 +193,13 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Conv2d(32, 64, 3, 2, 1),
             nn.ZeroPad2d((0, 1, 0, 1)),
-            nn.BatchNorm2d(64, momentum=0.95),
+            nn.BatchNorm2d(64, momentum=0.9),
             nn.LeakyReLU(0.25),
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(128, momentum=0.95),
+            nn.BatchNorm2d(128, momentum=0.9),
             nn.LeakyReLU(0.2),
             nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=1),
-            nn.BatchNorm2d(256, momentum=0.95),
+            nn.BatchNorm2d(256, momentum=0.9),
             nn.LeakyReLU(0.25),
             nn.Flatten(),
             nn.Linear(256 * 32 * 32, 1)
@@ -282,8 +276,18 @@ def main():
     scheduler_G = optim.lr_scheduler.StepLR(optimizer_G, step_size=10, gamma=0.1)
     scheduler_D = optim.lr_scheduler.StepLR(optimizer_D, step_size=10, gamma=0.1)
 
-    start_ep = 0
+    start_ep = 1
     min_val_loss = 1e10
+    """
+    if os.path.isfile(os.path.join(path_model,"checkpoint_YG_final.pth")):
+        checkpoint = torch.load(os.path.join(path_model,"checkpoint_YG_final.pth"),map_location=torch.device('cpu'))
+        start_ep = checkpoint['epoch']
+        print("Resuming from the checkpoint: ep", start_ep)
+        np.random.set_state(checkpoint['np_rand_state'])
+        torch.set_rng_state(checkpoint['torch_rand_state'])
+        optimizer_G.load_state_dict(checkpoint['optimizer'])
+        generator.load_state_dict(checkpoint['model'])
+    """
     
     # Training loop
     for epoch in range(num_epochs):
@@ -320,7 +324,7 @@ def main():
             optimizer_G.zero_grad()
             # Unsupervised loss
             #loss = (1 - ssim_loss(reconstructed, xx)) + bce_loss(reconstructed, xx)
-            loss = adversarial_loss(discriminator(reconstructed), valid) + mse_loss(reconstructed, xx)
+            loss = adversarial_loss(discriminator(reconstructed), valid)
             # Backward pass and optimize
             loss.backward()
             optimizer_G.step()
@@ -347,7 +351,7 @@ def main():
                 
         print(
             f"Epoch [{epoch+1}/{num_epochs}]\
-                    Valid MSE Loss: {valid_loss:.4f} "
+                    Valid SSIM Loss: {valid_loss:.4f} "
         )
         
         if valid_loss < min_val_loss:
