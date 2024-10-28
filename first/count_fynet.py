@@ -4,7 +4,7 @@ import os
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from count_an_image_fynet import loadImage, particleCounting
+from count_functions import loadImage, particleCounting
 
 import numpy as np
 import matplotlib.pyplot as plt
