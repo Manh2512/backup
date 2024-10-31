@@ -35,20 +35,12 @@ num_epochs = 18
 
 train_loss_hist = []
 val_loss_hist = []
-test_loss_hist = []
 d_loss_hist = []
 
 def normalize(x):
     max_value = x.max()
     min_value = x.min()
     return (x - min_value) / (max_value - min_value)
-
-def apply_threshold(tensor, threshold=0.5):
-    # Apply threshold to generate binary tensor (0 or 1)
-    tensor = normalize(tensor)
-    binary_tensor = (tensor > threshold).float()
-    
-    return binary_tensor
 
 class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
@@ -415,14 +407,14 @@ def main():
     axs[1].plot(range(1, num_epochs + 1), train_loss_hist, marker='o', linestyle='-', color='b')
     axs[1].set_title('Generation Loss vs. Epochs')
     axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('Generation Loss')
+    axs[1].set_ylabel('Loss')
     axs[1].grid(True)
 
     # Plot Validation and Test Loss
     axs[2].plot(range(1, num_epochs + 1), val_loss_hist, marker='o', linestyle='-', color='g')
     axs[2].set_title('Validation Loss vs. Epochs')
     axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel('Generation Loss')
+    axs[2].set_ylabel('Loss')
     axs[2].grid(True)
 
     plt.tight_layout()
