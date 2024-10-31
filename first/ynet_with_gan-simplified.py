@@ -1,7 +1,7 @@
 """
 YWGANet receiving Input1 and Input2
 CNNs layers
-Wasserstein Adversarial Loss + MSE Loss + BCE Loss
+MSE Adversarial Loss + MSE Loss + BCE Loss
 """
 import os
 import glob
