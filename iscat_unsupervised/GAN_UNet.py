@@ -382,14 +382,14 @@ def main():
                     'scheduler': scheduler_G.state_dict(),
                     'np_rand_state': np.random.get_state(),
                     'torch_rand_state': torch.get_rng_state(),
-                    }, os.path.join(path_model,f"checkpoint_YG_ep={epoch+1}.pth"))
+                    }, os.path.join(path_model,f"checkpoint_YG_ep={epoch+start_ep}.pth"))
         torch.save({'epoch': epoch+start_ep,
                     'model': discriminator.state_dict(),
                     'optimizer': optimizer_D.state_dict(),
                     'scheduler': scheduler_D.state_dict(),
                     'np_rand_state': np.random.get_state(),
                     'torch_rand_state': torch.get_rng_state(),
-                    }, os.path.join(path_model,f"checkpoint_YD_ep={epoch+1}.pth"))
+                    }, os.path.join(path_model,f"checkpoint_YD_ep={epoch+start_ep}.pth"))
 
     
     #visualize losses
@@ -417,7 +417,7 @@ def main():
     axs[2].grid(True)
 
     plt.tight_layout()
-    plt.savefig(plot_output+f'/unUNet_ep={num_epochs}.png')
+    plt.savefig(plot_output+f'/unUNet_ep={num_epochs+start_ep-1}.png')
     plt.show()
 
 if __name__ == '__main__':
