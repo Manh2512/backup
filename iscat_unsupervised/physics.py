@@ -6,7 +6,7 @@ import torch.fft as fft
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 latent_dim = 512
-pixel_size = 2*10.2e-6
+pixel_size = 10.2e-6
 objective_mag = 60
 z = 1e-3
 wavelengths = torch.tensor(np.loadtxt('iSCAT_data/iscat_wavelengths.csv', delimiter=','), dtype=torch.float32)
