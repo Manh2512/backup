@@ -331,7 +331,7 @@ def main():
 
             #  Progress Monitoring
             # ---------------------
-            if (i + 1) % 1 == 0:
+            if (i + 1) % 200 == 0:
                 print(
                     f"Epoch [{epoch+1}/{num_epochs}]\
                             Batch {i+1}/{len(train_loader)} "
