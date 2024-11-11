@@ -194,13 +194,14 @@ class Discriminator(nn.Module):
             nn.Conv2d(32, 64, 3, 2, 1),
             nn.ZeroPad2d((0, 1, 0, 1)),
             nn.BatchNorm2d(64, momentum=0.9),
-            nn.LeakyReLU(0.25),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128, momentum=0.9),
             nn.LeakyReLU(0.2),
             nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=1),
             nn.BatchNorm2d(256, momentum=0.9),
-            nn.LeakyReLU(0.25),
+            nn.LeakyReLU(0.2),
+            #nn.Dropout(0.2),
             nn.Flatten(),
             nn.Linear(256 * 32 * 32, 1)
         )
@@ -268,6 +269,7 @@ def main():
     generator = Generator(1, 1).to(device)
     discriminator = Discriminator(latent_dim).to(device)
     # Loss functions
+    mse_loss = nn.MSELoss().to(device)
     ssim_loss = SSIM().to(device)
     adversarial_loss = nn.BCEWithLogitsLoss()
     # Optimizers
@@ -324,7 +326,7 @@ def main():
             optimizer_G.zero_grad()
             # Unsupervised loss
             #loss = (1 - ssim_loss(reconstructed, xx)) + bce_loss(reconstructed, xx)
-            loss = adversarial_loss(discriminator(reconstructed), valid)
+            loss = 0.3*adversarial_loss(discriminator(reconstructed), valid) + (1-ssim_loss(reconstructed, xx)) + mse_loss(reconstructed, xx)
             # Backward pass and optimize
             loss.backward()
             optimizer_G.step()
