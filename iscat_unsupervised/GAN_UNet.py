@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import skimage
 from skimage.metrics import structural_similarity as ssim
-from physics import pixel_size, objective_mag, z, wavelengths, physics_module
+from physics import pixel_size, objective_mag, z, wavelength, physics_module
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.cuda.empty_cache()
@@ -110,11 +110,10 @@ class OutConv(nn.Module):
 
 
 class ImageDataset(torch.utils.data.Dataset):
-    def __init__(self, input_dir, wavelengths, transform=None):
+    def __init__(self, input_dir, transform=None):
         self.input_dir = input_dir
         self.input_images = os.listdir(input_dir)
         self.input_images = [f for f in self.input_images if f.endswith('.png')]
-        self.wavelengths = wavelengths
         self.transform = transform
 
     def __len__(self):
@@ -124,15 +123,11 @@ class ImageDataset(torch.utils.data.Dataset):
         # Load input and target images
         input_image_path = os.path.join(self.input_dir, self.input_images[idx])
         input_image = Image.open(input_image_path)
-        idx_str = self.input_images[idx].split('_')[1].split('.')[0]
-        image_index = int(idx_str)-1
-        wavelength = self.wavelengths[image_index]
-        
         # Apply transformations
         if self.transform:
             input_image = self.transform(input_image)
             
-        return input_image, wavelength #image_index used for getting the corresponding wavelength
+        return input_image
 
 # Define transformations
 transform = transforms.Compose([
@@ -259,8 +254,8 @@ def main():
     train_input_dir = 'iSCAT_processed/train/Input'
     val_input_dir = 'iSCAT_processed/val/Input'
     
-    train_dataset = ImageDataset(input_dir=train_input_dir, wavelengths=wavelengths, transform=transform)
-    val_dataset = ImageDataset(input_dir=val_input_dir, wavelengths=wavelengths, transform=transform)
+    train_dataset = ImageDataset(input_dir=train_input_dir, transform=transform)
+    val_dataset = ImageDataset(input_dir=val_input_dir, transform=transform)
     
     # Create DataLoader
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -304,11 +299,10 @@ def main():
             optimizer_D.zero_grad()
             # Generate a batch of images
             reconstructed = []
-            for j in range(wavelengths.size(0)):  # should be 8 
-                inp = xx[i]  # Shape: [1, 512, 512]
-                w = wavelengths[i]
+            for j in range(batch_size):  # should be 8 
+                inp = xx[i]  # Shape: [1, 512, 512
                 out = generator(inp.unsqueeze(0))
-                re_inp = physics_module(out, pixel_size, w, objective_mag, z)
+                re_inp = physics_module(out, pixel_size, wavelength, objective_mag, z)
                 reconstructed.append(re_inp.squeeze(0))
     
             reconstructed = torch.stack(reconstructed, dim=0)
@@ -344,10 +338,10 @@ def main():
         #======================VALIDATION=======================
         valid_loss = 0
         with torch.no_grad():
-            for i, (xx, w) in enumerate(val_loader):
+            for i, xx in enumerate(val_loader):
                 xx = xx.to(device)
                 im = generator(xx)
-                reconstructed = physics_module(im, pixel_size, w, objective_mag, z)
+                reconstructed = physics_module(im, pixel_size, wavelength, objective_mag, z)
                 valid_loss += 1 - ssim_loss(reconstructed, xx).item()
         valid_loss /= len(val_loader)
                 
