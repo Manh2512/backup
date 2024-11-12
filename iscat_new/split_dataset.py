@@ -21,7 +21,7 @@ def split_dataset(input_dir, target_dir, output_dir, mags, train_ratio=0.75, val
     def copy(image_path, output_path):
         img = Image.open(image_path)
         resized = resize_transform(img)
-        img.save(output_path)
+        resized.save(output_path)
         
     # Create directories for train and test splits
     #input
