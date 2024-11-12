@@ -268,8 +268,8 @@ def main():
     ssim_loss = SSIM().to(device)
     adversarial_loss = nn.BCEWithLogitsLoss()
     # Optimizers
-    optimizer_G = optim.SGD(generator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
-    optimizer_D = optim.SGD(discriminator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
+    optimizer_G = optim.Adam(generator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
+    optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5) #L2 regularization
     scheduler_G = optim.lr_scheduler.StepLR(optimizer_G, step_size=10, gamma=0.1)
     scheduler_D = optim.lr_scheduler.StepLR(optimizer_D, step_size=10, gamma=0.1)
 
