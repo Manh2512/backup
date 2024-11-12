@@ -9,8 +9,7 @@ latent_dim = 512
 pixel_size = 10.2e-6
 objective_mag = 60
 z = 1e-3
-wavelengths = torch.tensor(np.loadtxt('iSCAT_data/iscat_wavelengths.csv', delimiter=','), dtype=torch.float32)
-
+wavelength = 530e-9
 def physics_module(reconstructed_image, pixel_size, wavelength, objective_mag, z):
     """
     Simulates the iSCAT forward propagation given an initial reconstructed image.
@@ -27,7 +26,7 @@ def physics_module(reconstructed_image, pixel_size, wavelength, objective_mag, z
     """
     
     # Constants
-    k = (2 * 3.14159265 / (wavelength*1e-9))  # Wavenumber
+    k = (2 * 3.14159265 / wavelength)  # Wavenumber
     
     # Image size and pixel size adjustment for magnification
     image_size = reconstructed_image.shape
