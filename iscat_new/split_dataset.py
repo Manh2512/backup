@@ -9,7 +9,7 @@ from torchvision import transforms
 
 mags = [20, 40, 60, 80, 100]
 
-def split_dataset(input_dir, target_dir, output_dir, mags, train_ratio=0.8, val_ratio=0.1):
+def split_dataset(input_dir, target_dir, output_dir, mags, train_ratio=0.75, val_ratio=0.15):
     #list of shuffled files
     numbers = list(range(1, 5001))
     random.shuffle(numbers)
