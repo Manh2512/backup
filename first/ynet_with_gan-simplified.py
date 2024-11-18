@@ -1,7 +1,7 @@
 """
 YWGANet receiving Input1 and Input2
 CNNs layers
-MSE Adversarial Loss + MSE Loss + BCE Loss
+Adversarial Loss + MSE Loss + BCE Loss
 """
 import os
 import glob
@@ -257,7 +257,7 @@ def main():
     generator = Generator(1, 1).to(device)
     discriminator = Discriminator().to(device)
     # Loss functions
-    adversarial_loss = nn.MSELoss().to(device)
+    adversarial_loss = nn.BCEWithLogitsLoss().to(device)
     mse_loss = nn.MSELoss().to(device)
     bce_loss = nn.BCELoss().to(device)
     #perceptual_loss = PerceptualLoss().to(device)
