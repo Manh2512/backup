@@ -26,7 +26,7 @@ def physics_module(reconstructed_image, pixel_size, wavelength, objective_mag, z
     """
     
     # Constants
-    k = (2 * 3.14159265 / wavelength)  # Wavenumber
+    k = torch.tensor((2 * 3.14159265 / wavelength), dtype=torch.float32))  # Wavenumber
     
     # Image size and pixel size adjustment for magnification
     image_size = reconstructed_image.shape
